@@ -2,7 +2,7 @@ import os
 import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
-import google.generativeai as genai
+from google import genai
 
 # Logging Setup
 logging.basicConfig(
@@ -14,9 +14,8 @@ logging.basicConfig(
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Gemini ကို Configure လုပ်ခြင်း
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+# SDK အသစ်နဲ့ Client ကို ချိတ်ဆက်ခြင်း (`AQ...` Key အမှန်နဲ့ အလုပ်လုပ်ပါပြီ)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("မင်္ဂလာပါ! ကျွန်တော်က Gemini AI နဲ့ ချိတ်ထားတဲ့ Bot ပါ။ ဘာတွေ ကူညီပေးရမလဲ?")
@@ -24,17 +23,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
-        # Gemini ဆီကို စာပို့ပြီး အဖြေတောင်းခြင်း
-        response = model.generate_content(user_message)
+        # SDK အသစ်ရဲ့ Model နဲ့ Generation ပုံစံ
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=user_message,
+        )
         await update.message.reply_text(response.text)
     except Exception as e:
-        # ဘာ Error တက်နေလဲဆိုတာ တိတိကျကျ သိရအောင် ပြပါမယ်
         await update.message.reply_text(f"Error: {str(e)}")
 
 def main():
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
-    # Commands နဲ့ Messages များကို Handlers လုပ်ခြင်း
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
