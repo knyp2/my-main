@@ -14,7 +14,7 @@ logging.basicConfig(
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# SDK အသစ်နဲ့ Client ကို ချိတ်ဆက်ခြင်း (`AQ...` Key အမှန်နဲ့ အလုပ်လုပ်ပါပြီ)
+# SDK အသစ်နဲ့ Client ကို ချိတ်ဆက်ခြင်း
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -23,9 +23,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
-        # SDK အသစ်ရဲ့ Model နဲ့ Generation ပုံစံ
+        # SDK အသစ်နဲ့ gemini-2.0-flash Model ကို အသုံးပြုခြင်း
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash',
             contents=user_message,
         )
         await update.message.reply_text(response.text)
