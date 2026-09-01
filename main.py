@@ -14,8 +14,6 @@ logging.basicConfig(
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-
-
 # Gemini ကို Configure လုပ်ခြင်း
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
@@ -30,7 +28,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = model.generate_content(user_message)
         await update.message.reply_text(response.text)
     except Exception as e:
-        await update.message.reply_text("အမှားအယွင်း တစ်စုံတစ်ရာ ရှိသွားပါတယ်။ ကျေးဇူးပြု၍ ခဏနေမှ ထပ်ကြိုးစားပါ။")
+        await update.message.reply_text(f"Error: {str(e)}")
 
 def main():
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
