@@ -23,9 +23,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
-        # SDK အသစ်နဲ့ gemini-2.0-flash Model ကို အသုံးပြုခြင်း
+        # gemini-3.6-flash Model ကို အသုံးပြုခြင်း
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-3.6-flash',
             contents=user_message,
         )
         await update.message.reply_text(response.text)
