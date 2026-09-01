@@ -26,39 +26,34 @@ async def send_long_message(update: Update, text: str):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("မင်္ဂလာပါ! ကျွန်တော်က Tiger AI ပါ။ စာတွေရော ပုံတွေပါ ပို့ပြီး မေးမြန်းနိုင်ပါတယ် ခဗျာ။")
 
-# စာသား (Text) များကို ဖြေကြားမယ့် Function
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
+    
+    # ပထမဆုံး စာတန်းကို ပို့မယ်
     sent_message = await update.message.reply_text("🐅 Tiger AI is thinking.")
     
-    # AI ဖြေနေစဉ်အတွင်း အစက်လေးတွေ ပြေးနေစေရန် Task တစ်ခု စတင်ခြင်း
-    async def animate_thinking():
-        dots = [".", "..", "..."]
-        i = 0
-        try:
-            while True:
+    # အစက်လေးတွေ ပြေးစေမယ့် လိုဂျစ် (Loop ၃ ကြိမ်သာ ပြေးမည် - Telegram Rate Limit မမိစေရန်)
+    dots_list = [".", "..", "..."]
+    
+    try:
+        # AI ဆီက အဖြေကို ချက်ချင်း တောင်းမယ့်အစား Background မှာ Thread ခွဲထုတ်မယ်
+        # ဒါမှမဟုတ် အစက်လေးတွေကို တစ်ချက်ချင်းစီ အလှည့်ကျပြောင်းပေးမယ်
+        for dot in dots_list:
+            await asyncio.sleep(0.6)
+            try:
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
                     message_id=sent_message.message_id,
-                    text=f"🐅 Tiger AI is thinking{dots[i]}"
+                    text=f"🐅 Tiger AI is thinking{dot}"
                 )
-                i = (i + 1) % len(dots)
-                await asyncio.sleep(1.0) # ၁ စက္ကန့်တစ်ကြိမ် အစက်ပြောင်းမည်
-        except asyncio.CancelledError:
-            pass
+            except Exception:
+                pass
 
-    # Background မှာ အစက်ပြေးတာကို Run ထားမယ်
-    anim_task = asyncio.create_task(animate_thinking())
-
-    try:
-        # Gemini AI ဆီကနေ အဖြေတောင်းခံခြင်း
+        # Gemini ဆီကနေ အဖြေတောင်းခံခြင်း
         response = client.models.generate_content(
             model='gemini-3.6-flash',
             contents=user_message,
         )
-        
-        # အဖြေရောက်လာတာနဲ့ အစက်ပြေးတာကို ရပ်လိုက်မယ်
-        anim_task.cancel()
         
         if len(response.text) <= 4000:
             await context.bot.edit_message_text(
@@ -71,7 +66,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await send_long_message(update, response.text)
 
     except Exception as e:
-        anim_task.cancel()
         error_str = str(e)
         if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
             await context.bot.edit_message_text(
@@ -98,7 +92,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-    print("Tiger AI Bot with animated thinking dots is running...")
+    print("Tiger AI Bot with smooth thinking animation is running...")
     app.run_polling()
 
 if __name__ == '__main__':
