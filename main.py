@@ -23,7 +23,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
-        # gemini-3.6-flash Model ကို အသုံးပြုခြင်း
+        # ညွှန်ကြားချက်အသစ်အရ gemini-3.6-flash ကို သုံးခြင်း
         response = client.models.generate_content(
             model='gemini-3.6-flash',
             contents=user_message,
