@@ -28,6 +28,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = model.generate_content(user_message)
         await update.message.reply_text(response.text)
     except Exception as e:
+        # ဘာ Error တက်နေလဲဆိုတာ တိတိကျကျ သိရအောင် ပြပါမယ်
         await update.message.reply_text(f"Error: {str(e)}")
 
 def main():
