@@ -18,12 +18,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("မင်္ဂလာပါ! ကျွန်တော်က Gemini AI နဲ့ ချိတ်ထားတဲ့ Bot ပါ။ ဘာတွေ ကူညီပေးရမလဲ?")
+    await update.message.reply_text("မင်္ဂလာပါ! ကျွန်တော်က Gemini AI နဲ့ ချိတ်ထားတဲ့ Bot ပါ။ စာတွေရော ပုံတွေပါ ပို့ပြီး မေးမြန်းနိုင်ပါတယ် ခဗျာ။")
 
+# စာသား (Text) တွေကို လက်ခံဖြေကြားမယ့် Function
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
-        # Model နာမည်ကို gemini-3.6-flash သို့ ပြောင်းလဲခြင်း
         response = client.models.generate_content(
             model='gemini-3.6-flash',
             contents=user_message,
@@ -32,13 +32,44 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"Error: {str(e)}")
 
+# ပုံ (Photo) တွေကို လက်ခံပြီး Gemini ဆီ ပို့မယ့် Function အသစ်
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        # Telegram ထဲ ပို့လိုက်တဲ့ ပုံတွေထဲက အကြီးဆုံး ပုံကို ယူပါမယ်
+        photo_file = await update.message.photo[-1].get_file()
+        
+        # ပုံကို Server ပေါ် ခေတ္တ Download ဆွဲပါမယ်
+        photo_bytes = await photo_file.download_as_bytearray()
+        
+        # ပုံနဲ့အတူ ပါလာတဲ့ စာသား (Caption) ရှိရင် ယူမယ်၊ မရှိရင် မူလ စာသားသုံးမယ်
+        caption = update.message.caption or "ဒီပုံထဲမှာ ဘာတွေပါလဲ ရှင်းပြပေးပါ"
+
+        # Gemini ရဲ့ SDK အသစ်နဲ့ ပုံကို ပို့ပြီး စစ်ဆေးခိုင်းခြင်း
+        response = client.models.generate_content(
+            model='gemini-3.6-flash',
+            contents=[
+                caption,
+                {
+                    "mime_type": "image/jpeg",
+                    "data": bytes(photo_bytes)
+                }
+            ]
+        )
+        await update.message.reply_text(response.text)
+    except Exception as e:
+        await update.message.reply_text(f"ပုံကို စစ်ဆေးရာတွင် Error ဖြစ်သွားပါသည်: {str(e)}")
+
 def main():
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
+    # Handlers တွေ သတ်မှတ်ခြင်း
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    
+    # ပုံတွေကို လက်ခံဖို့ Handler အသစ် ထပ်ထည့်ခြင်း
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
-    print("Bot is running...")
+    print("Bot is running with Photo support...")
     app.run_polling()
 
 if __name__ == '__main__':
