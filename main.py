@@ -1,6 +1,5 @@
 import os
 import logging
-import time
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 from google import genai
@@ -16,30 +15,43 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("မင်္ဂလာပါ! ကျွန်တော်က Gemini AI နဲ့ ချိတ်ထားတဲ့ Bot ပါ။ စာတွေရော ပုံတွေပါ ပို့ပြီး မေးမြန်းနိုင်ပါတယ် ခဗျာ။")
+# စာသားတွေ ရှည်လွန်းရင် အပိုင်းခွဲပြီး ပို့မယ့် Helper Function
+async def send_long_message(update: Update, text: str):
+    max_length = 4000
+    if len(text) <= max_length:
+        await update.message.reply_text(text)
+    else:
+        for i in range(0, len(text), max_length):
+            await update.message.reply_text(text[i:i + max_length])
 
-# စာသား (Text) များကို ဖြေကြားမယ့် Function (Retry logic ပါဝင်သည်)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("မင်္ဂလာပါ! ကျွန်တော်က Tiger AI ပါ။ စာတွေရော ပုံတွေပါ ပို့ပြီး မေးမြန်းနိုင်ပါတယ် ခဗျာ။")
+
+# စာသား (Text) များကို ဖြေကြားမယ့် Function
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
+        # Tiger thinking... လို့ status ပြမယ်
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
         response = client.models.generate_content(
             model='gemini-3.6-flash',
             contents=user_message,
         )
-        await update.message.reply_text(response.text)
+        
+        # အဖြေရှည်ရင် အပိုင်းခွဲပို့မယ်
+        await send_long_message(update, response.text)
     except Exception as e:
         error_str = str(e)
         if "503" in error_str or "UNAVAILABLE" in error_str:
-            await update.message.reply_text("ဆာဗာ ခေတ္တ ဝန်ပိနေပါသည် (High Demand)။ ကျေးဇူးပြု၍ ၁ မိနစ်ခန့်ကြာမှ ထပ်ပို့ပေးပါ ခဗျာ။")
+            await update.message.reply_text("ဆာဗာ ခေတ္တ ဝန်ပိနေပါသည် (High Demand)။ ကျေးဇူးပြု၍ ခဏနေမှ ထပ်ပို့ပေးပါ ခဗျာ။")
         else:
             await update.message.reply_text(f"Error ဖြစ်သွားပါသည်: {error_str}")
 
 # ပုံ (Photo) များကို လက်ခံပြီး ဖြေကြားမယ့် Function
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        # Tiger thinking... လို့ upload status ပြမယ်
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="upload_photo")
 
         photo_file = await update.message.photo[-1].get_file()
@@ -47,7 +59,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         caption = update.message.caption or "ဒီပုံထဲမှာ ဘာတွေပါလဲ ရှင်းပြပေးပါ"
 
-        # Gemini ဆီသို့ ပုံနှင့် စာ ပို့ခြင်း
         response = client.models.generate_content(
             model='gemini-3.6-flash',
             contents=[
@@ -58,7 +69,9 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 }
             ]
         )
-        await update.message.reply_text(response.text)
+        
+        # အဖြေရှည်ရင် အပိုင်းခွဲပို့မယ်
+        await send_long_message(update, response.text)
     except Exception as e:
         error_str = str(e)
         if "503" in error_str or "UNAVAILABLE" in error_str:
@@ -73,7 +86,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
-    print("Bot is running with enhanced error handling...")
+    print("Tiger AI Bot is running smoothly...")
     app.run_polling()
 
 if __name__ == '__main__':
