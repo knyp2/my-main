@@ -4,7 +4,6 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 from google import genai
 
-# Logging Setup
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -15,7 +14,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# စာသားတွေ ရှည်လွန်းရင် အပိုင်းခွဲပြီး ပို့မယ့် Helper Function
 async def send_long_message(update: Update, text: str):
     max_length = 4000
     if len(text) <= max_length:
@@ -27,20 +25,29 @@ async def send_long_message(update: Update, text: str):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("မင်္ဂလာပါ! ကျွန်တော်က Tiger AI ပါ။ စာတွေရော ပုံတွေပါ ပို့ပြီး မေးမြန်းနိုင်ပါတယ် ခဗျာ။")
 
-# စာသား (Text) များကို ဖြေကြားမယ့် Function
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
-        # Tiger thinking... လို့ status ပြမယ်
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+        # ပထမဆုံး "Tiger AI is thinking..." လို့ စာတန်းနဲ့ အရင်ပို့မယ်
+        sent_message = await update.message.reply_text("🐅 Tiger AI is thinking...")
 
         response = client.models.generate_content(
             model='gemini-3.6-flash',
             contents=user_message,
         )
         
-        # အဖြေရှည်ရင် အပိုင်းခွဲပို့မယ်
-        await send_long_message(update, response.text)
+        # စဉ်းစားလို့ပြီးတာနဲ့ "Tiger AI is thinking..." ဆိုတဲ့ စာကို အဖြေအစစ်နဲ့ ပြန်ပြင်လိုက်မယ် (Edit)
+        if len(response.text) <= 4000:
+            await context.bot.edit_message_text(
+                chat_id=update.effective_chat.id,
+                message_id=sent_message.message_id,
+                text=response.text
+            )
+        else:
+            # အဖြေက အရမ်းရှည်ရင် ပထမစာကို ဖျက်ပြီး အပိုင်းခွဲပို့မယ်
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=sent_message.message_id)
+            await send_long_message(update, response.text)
+
     except Exception as e:
         error_str = str(e)
         if "503" in error_str or "UNAVAILABLE" in error_str:
@@ -48,11 +55,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text(f"Error ဖြစ်သွားပါသည်: {error_str}")
 
-# ပုံ (Photo) များကို လက်ခံပြီး ဖြေကြားမယ့် Function
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        # Tiger thinking... လို့ upload status ပြမယ်
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="upload_photo")
+        sent_message = await update.message.reply_text("🐅 Tiger AI is analyzing the photo...")
 
         photo_file = await update.message.photo[-1].get_file()
         photo_bytes = await photo_file.download_as_bytearray()
@@ -70,8 +75,16 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
         )
         
-        # အဖြေရှည်ရင် အပိုင်းခွဲပို့မယ်
-        await send_long_message(update, response.text)
+        if len(response.text) <= 4000:
+            await context.bot.edit_message_text(
+                chat_id=update.effective_chat.id,
+                message_id=sent_message.message_id,
+                text=response.text
+            )
+        else:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=sent_message.message_id)
+            await send_long_message(update, response.text)
+
     except Exception as e:
         error_str = str(e)
         if "503" in error_str or "UNAVAILABLE" in error_str:
@@ -86,7 +99,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
-    print("Tiger AI Bot is running smoothly...")
+    print("Tiger AI Bot with Live Editing Thinking State is running...")
     app.run_polling()
 
 if __name__ == '__main__':
